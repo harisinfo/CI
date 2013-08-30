@@ -1,0 +1,187 @@
+Continuous Integration Architecture:
+
+Audience: 
+
+Developers, DevOps, System Architects, CTOs, Technical Directors. 
+
+Pre-requisites:
+
+Good working knowledge of any scripting language (PHP/Python), experience with Subversion or any other form of versioning system, Bash scripting, some simple Linux administration skills (installation of packages etc), familiarity with Linux command line interface.
+
+I am using PHP / Python and some amount of Ruby for most of the middleware. You can replace this with any server side scripting language of your choice. I have included a high level flow for the entire process where possible, this should be easily scriptable in any programming language of your choice. Developers are expected to understand some of the basic Scrum philosophies, i.e understand the definition of stories, epics, sprint, acceptance criteria etc. I have included a Scrum glossary at the end for reference.
+
+
+Introduction
+
+I would like to dedicate this book to my parents (Usha Ramamurthy and Vaikuntam Ramamurthy), my partner (Lisia Esteves) and Aleksi Asikainen (former CTO MadBid.com). Without the support of my parents, my partner and the knowledge imparted by my previous manager, I wouldn't have been able to complete this book.
+
+I would especially like to thank my parents who have continuously supported me and encouraged me through the years in honing on my skills. Without their support and blessings, I wouldn't be able to 
+
+So without any further ado, let us get our hands dirty into building a CI system revolving around Agile principles, Lean methodology and a strict Scrum process.
+
+
+Chapter 1.
+
+
+What is Continuous Integration?
+
+Continuous Integration or CI as it is popularly called can refer to a software product / set of software products / set of paradigms / philosophies to ease the process of software delivery. Most programmers / system architects strive to achieve a bug free system and software release. More often than not, this effort is far from the truth. Systems break, legacy products fail with patches and upgrades. It becomes a situation of releasing more bugs than working features. This leads to time and financial loss, demotivation of the entire team, a lot of finger pointing and other complicated situations as most of you might be aware of. CI is an attempt to minimise the aggrevation caused by the entire build, test, release process if setup correctly. CI can work wonders for both startup organisations and established heavyweights. Lean 
+
+
+How can CI help?
+
+
+CI can be combined with a number of processes running in tandem in a certain sequence to minimise any errors caused during software development. Various components of the CI monitor builds using a variety of different tools to make sure the basics have been implemented correctly. As an example, when commiting a change on to Subversion for a PHP script, the easiest thing to do before any commit of a PHP file would be to check the syntax for the said PHP file. Running PHP lint as a pre-commit process can help neutrelise this particular threat. Another popular scenario where developers fail is to provide meaningful documentation. So how can we ensure the software product is well documented? You can easily run a process in CI to make sure the merged products have meaning documentation. In case a document is missing, reject the build and inform the author about the error.
+
+
+Technical Requirements:
+
+1 LAMP server (CI Server to run Jenkins and it's tasks)
+
+Install Jenkins with Subversion plugin
+
+1 LAMP server (SVN repository and web server for testing purposes, we can move the web server locally by creating a virtual box)
+
+Subversion, Apache, MySQL
+
+
+1 LAMP + Ruby server (Redmine installation)
+
+Install redmine
+
+
+Setting up the workflow
+
+Before we begin with the actual dirty work, we need to setup the basics and understand what we are aiming to achieve. We need to plan out the entire software development cycle, make some rigid assumptions. You can always tweak the assumptions based on your organisations goals. 
+
+In general, any groomed story (bug or issue) will be in one of the following stages:
+
+1) New: as defined the story has been pulled from the backlog into the sprint
+
+2) In progress: the story is currently being worked upon by someone
+
+3) Testing: is being tested either by the Author or by the QA 
+
+4) Assigned post testing: The story has been re-assigned to the original author or someone else within the team to fix any missing acceptance criterias
+
+5) Ready to go live: The story has been tested by the QA and is ready to be merged to release candidate
+
+6) Resolved: The story has been resolved
+
+General rules:
+
+Step 1 to 4: Can be modified by the Author or anyone else in the dev team
+Step 5: Can only be set by the QA
+Step 6: Can only be set by Jenkins when the story has been merged to Production
+
+
+Workflow Requirements: 
+
+Redmine (redmine.org) - Bug / Issue Tracker
+Jenkins (jenkins-ci.org) - Continuous Integration manager
+
+
+
+SVN structure and branch definition
+
+
+To start with, create your SVN repositories using the following heirarchy. I will define the various branches below:
+
+
+Production
+
+Staging
+
+Release Candidate	Release Nexus
+
+Fix branches		Test Branches
+
+
+Production (live code repository)
+
+Staging (branch out from production)
+
+Release Candidate (branch out from staging)
+
+Release Nexus (branch out from Release Candidate)
+
+Fix branches (branch out of Release Candidate) - Fix branches should be spawned only if the said change is a bug fix. A bug fix is defined as any change to the system where the change and it's subsequent test doesn't exceed 3 man hours of work. If the developer recognizes the change requires any form of refactoring of code, the fix branch should be destroyed and changes should be moved to a test branch (see below)
+
+Test branches (branch out from Release Nexus) - Test branches should be spawned if the said changes are a feature request or the fix could take more than 3 man hours of work. 
+
+
+Moving away from traditional SVN structure:
+
+Traditionally, developers work on their own branch i.e the branches are assigned names like test_dean, test_martin etc. This requires the developers to regularly update their platforms and then selectively merge back their changes to trunk. Developers are then expected to test their changes on the trunk and in case of failure, remove their bit of code so that releases can proceed as normal. Yes, the procedure sounds fairly straightforward but as experience tells us, it could leave others blocked for hours if not for days. 
+
+Enter floating branches. Floating branches are branches which are not "owned" by any developer. Rather they are created and destroyed on the fly for a specific purpose. Since the branch is spawned, the codebase is fairly new and even if the changes are huge, regular merges can keep the platforms uptodate. As long as the heirarchy of merges is maintained, the process though slightly slower, ensures higher quality of the product being delivered every time.
+
+
+
+
+Merge strategy:
+
+Challenge: To explain the nature of the problem, I'll begin with the following example. So we have our SVN setup, and we have 3 developers (Tom, Richard and Harry) all working on 3 different bugs. Being a startup, I serve as the only QA in the team. Being a QA, I would like to test each of the bugs in isolation, merge it to the staging environment and then move onto the next request, test the next feature and so forth. If I find a problem with a particular implementation, I would like to lay the blame on someone, and that someone being the person working on the particular story. 
+
+This will work perfectly fine if the QA can work on a single request at a time. i.e merge a bug or feature, lock the release candidate, test the changes and if all looks ok release the lock for others to merge one story at a time, lock release and so on. If the merge fails for some reason, QA can backout the change with svn revert and release the lock for the next feature to be merged up. 
+
+This is an ideal situation and is far from the truth. In an agile (Scrum) team, you can usually see a drop in the burndown chart somewhere near the end of a sprint. Let's face it, getting to a stage where developers merge their changes to the trunk on a regular basis will only happen if the team has been working on the product for a fairly long time. Even then you can see stories being pulled from backlogs, emergency bug fixes, new implementations being thrown in and other business decisions distorting the scope of a sprint. 
+
+I am not defending developers here, rather all I am trying to get at here is the nature of how most organisations operate. Bearing this in mind, we need to build a system to accommodate these changes with minimum or no holes.
+
+Back to our intial problem. At this stage both Richard and Harry decide to merge their changes to the release candidate too. As a QA I am now faced with the dilema of testing 3 features on a single platform not knowing which part impacts what. If something is not working, I don't know whom to blame. Things become further complicated if more than one of them are working on the same module at the same time. To resolve the situation, I go through my SVN logs and summon all the people who have merged since the last stable release. I sit down with them and go through all the code changes doing a diff and trying to work out the logical workflow of the modules and the error being thrown as a result. I have seen this process (and worse ones) being followed in a number of experienced teams and in corporate organisations. Needless to say, this is not only time consuming, frustrating, tedious and a thoroughly boring task for all parties involved, but it also has cost the company many man hours. 
+
+Teams get demorolized as they would like to get on with their work, product owners would like to see their changes live but we are stuck with a broken release candidate and unless this is resolved we have to push back any changes.
+
+
+Enter incremental merges, building the algorithm:
+
+To overcome the above, we need to be able to test individual merges in isolation. We start by defining a stable release candidate. Let us say revision 2123 is the latest stable release candidate. Tom needs to merge his change upto the release candidate so that Jenkins can perform a regression test and run a bunch of other tests. Picking 2123 as the stable verion, Tom's changes are merged to 2123. On successful merge, Tom's changes will now be available at revision 2124. 
+
+Somewhere in the middle of the merge, Richard decides to merge his changes to the release candidate. Insted of merging the changes to 2124, we pick the last stable release i.e 2123 and merge Richard's changes to the latest stable version. As before, following a successful merge, Richard's merge are available in version 2125. 
+
+Finally, when Harry now merges his changes, his changes are merged to the last stable version i.e 2123 giving us 2126 as the version with Harry's change. On every step of a successful merge, we record the version number in a database or flat file queue in a sequence. 
+
+As a QA for me to test the individual stories in it's isolation, all I need to do is SVN update the first revision number from the merge queue onto my web server directory, test the change and mark the build as a "Go" or "No Go". If the build is marked as "Go", the build is now merged to trunk (in this case staging) and the stable revision is now set as 2124. In case the feature fails, mark 2124 as a failed merge and leave the stable release candidate version as is (2123). Now I move onto the next feature 2125, I merge trunk back to 2125 (to merge back changes for features in 2123), we get revision 2127. In the testing queue, replace 2125 in the queue with 2127 so that we know we need to update our local web server director with version 2127 (and not 2125). We do a SVN update on our local web server directory and perform the steps as above. 
+
+
+
+#Merge algorithm
+
+
+for i={1,n}:
+	get latest stable release candidate R0;
+	merge Ri to R0; 
+	get Ri0; 
+	push Ri0 to FIFO queue;
+
+
+#Building QA test platform
+
+while FIFO queue not empty do:
+	pop REV_TEMP from FIFO queue:
+		get stable release candidate R0;
+		merge R0 to REV_TEMP; 
+		get REV_TEMP_UPDATE;
+		set REV_TEMP = REV_TEMP_UPDATE in FIFO Queue;
+
+	update web server directory using `svn update -r REV_TEMP_UPDATE`;
+
+	test REV_TEMP_UPDATE:
+		If test REV_TEMP_UPDATE == PASS, merge REV_TEMP_UPDATE to trunk and set stable release candidate to REV_TEMP_UPDATE;
+		If test REV_TEMP_UPDATE == FAIL, mark build as failure
+
+	remove REV_TEMP_UPDATE from FIFO Queue;
+	
+
+
+
+
+
+
+
+
+
+
+
+
